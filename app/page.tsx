@@ -1,18 +1,11 @@
 import Link from "next/link";
+import Navbar from "./components/Navbar";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white">
 
-      <nav className="flex justify-between items-center p-6 border-b border-gray-800">
-        <h1 className="text-2xl font-bold">
-          DesignDNA
-        </h1>
-
-        <button className="px-4 py-2 bg-white text-black rounded-lg">
-          Login
-        </button>
-      </nav>
+      <Navbar />
 
       <section className="flex flex-col items-center justify-center text-center py-32 px-6">
 

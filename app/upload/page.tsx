@@ -1,243 +1,574 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
+import {ChangeEvent,useEffect,useState } from "react";
+import { analyzeImage } from "../services/api";
+import { AnalysisResponse } from "../types/analysis";
+import MetricCard from "../components/MetricCard";
+import InfoCard from "../components/InfoCard";
+import ScoreCard from "../components/ScoreCard";
+import ColorPalette from "../components/ColorPalette";
+import FeedbackCard from "../components/FeedbackCard";
+import UploadHeader from "../components/UploadHeader";
+import Navbar from "../components/Navbar";
+import AuthGuard from "../guards/AuthGuard";
+
+/* =========================================================
+  COMPONENT
+========================================================= */
 
 export default function UploadPage() {
-  const [image, setImage] = useState<string | null>(null);
-  const [fileName, setFileName] = useState("");
-  const [fileSize, setFileSize] = useState("");
 
-  const [brightness, setBrightness] = useState<number | null>(null);
-  const [contrast, setContrast] = useState<number | null>(null);
-  const [sharpness, setSharpness] = useState<number | null>(null);
+  const [error, setError] =
+    useState("");
 
-  const [score, setScore] = useState<number | null>(null);
-  const [quality, setQuality] = useState("");
+  /* =====================================================
+      IMAGE
+  ===================================================== */
+  
+  const [image, setImage] =
+    useState<string | null>(null);
 
-  const [feedback, setFeedback] = useState<string[]>([]);
+  const [selectedFile, setSelectedFile] =
+    useState<File | null>(null);
 
-  const [loading, setLoading] = useState(false);
+  const [fileName, setFileName] =
+    useState("");
 
-  const handleImageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
+  const [fileSize, setFileSize] =
+    useState("");
 
-    if (!file) return;
+  /* =====================================================
+      LOADING
+  ===================================================== */
 
-    const imageUrl = URL.createObjectURL(file);
+  const [loading, setLoading] =
+    useState(false);
 
-    setImage(imageUrl);
-    setFileName(file.name);
+  /* =====================================================
+      IMAGE INFORMATION
+  ===================================================== */
 
-    const sizeMB = (
-      file.size /
-      1024 /
-      1024
-    ).toFixed(2);
+  const [width, setWidth] =
+    useState<number | null>(null);
 
-    setFileSize(sizeMB + " MB");
+  const [height, setHeight] =
+    useState<number | null>(null);
+
+  const [pixels, setPixels] =
+    useState<number | null>(null);
+
+  /* =====================================================
+      ANALYSIS
+  ===================================================== */
+
+  const [brightness, setBrightness] =
+    useState<number | null>(null);
+
+  const [contrast, setContrast] =
+    useState<number | null>(null);
+
+  const [sharpness, setSharpness] =
+    useState<number | null>(null);
+
+  useEffect(() => {
+    if (!image) return;
+
+    return () => {
+      URL.revokeObjectURL(image);
+    };
+  }, [image]);
+
+  const [edgeDensity, setEdgeDensity] =
+    useState<number | null>(null);
+
+  const [whitespace, setWhitespace] =
+    useState<number | null>(null);
+
+  /* =====================================================
+      SCORE
+  ===================================================== */
+
+  const [score, setScore] =
+    useState<number | null>(null);
+
+  /* =====================================================
+      COLORS
+  ===================================================== */
+
+  const [dominantColors, setDominantColors] =
+    useState<string[]>([]);
+
+  const [colorHarmony, setColorHarmony] =
+    useState("");
+
+  /* =====================================================
+      METRICS
+  ===================================================== */
+
+  const [metrics, setMetrics] =
+    useState<AnalysisResponse["metrics"] | null>(null);
+
+  /* =====================================================
+      FEEDBACK
+  ===================================================== */
+
+  const [feedback, setFeedback] =
+    useState<string[]>([]);
+
+  /* =====================================================
+      RESET ANALYSIS
+  ===================================================== */
+
+  const resetAnalysis = () => {
+
+
+    setImage(null);
+    setSelectedFile(null);
+    setFileName("");
+    setFileSize("");
 
     setBrightness(null);
     setContrast(null);
     setSharpness(null);
+    setEdgeDensity(null);
+    setWhitespace(null);
+
     setScore(null);
-    setQuality("");
+
+    setDominantColors([]);
+    setColorHarmony("");
+
+    setMetrics(null);
+
     setFeedback([]);
+
+    setWidth(null);
+    setHeight(null);
+    setPixels(null);
+    setError("");
+
   };
 
-  const analyzeDesign = async () => {
-    const input = document.querySelector(
-      'input[type="file"]'
-    ) as HTMLInputElement;
+  /* =====================================================
+      HANDLE IMAGE
+  ===================================================== */
 
-    const file = input.files?.[0];
+  const handleImageChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
 
-    if (!file) {
-      alert("Please select an image");
+    const file =
+      event.target.files?.[0];
+
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file.");
       return;
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Maximum file size is 10 MB.");
+      return;
+    }
+
+    resetAnalysis();
+
+    setSelectedFile(file);
+
+    setImage(
+      URL.createObjectURL(file)
+    );
+
+    setFileName(file.name);
+
+    setFileSize(
+      (
+        file.size /
+        1024 /
+        1024
+      ).toFixed(2) + " MB"
+    );
+
+  };
+
+  /* =====================================================
+      ANALYZE
+  ===================================================== */
+
+  const analyzeDesign = async () => {
+
+    if (!selectedFile) {
+
+    setError(
+      "Please select an image first."
+    );
+
+      return;
+
+    }
+
     try {
+
       setLoading(true);
+      setError("");
 
-      const formData = new FormData();
+      const data = await analyzeImage(selectedFile);
 
-      formData.append(
-        "file",
-        file
-      );
+      console.log(data);
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/analyze",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      /* -----------------------
+        Image
+      ----------------------- */
 
-      if (!response.ok) {
-        throw new Error(
-          "Analysis failed"
-        );
-      }
+      setWidth(data.image.width);
 
-      const data =
-        await response.json();
+      setHeight(data.image.height);
 
-      console.log(
-        "Analysis Result:",
-        data
-      );
+      setPixels(data.image.pixels);
+
+      /* -----------------------
+        Analysis
+      ----------------------- */
 
       setBrightness(
-        data.brightness
+        data.analysis.brightness
       );
 
       setContrast(
-        data.contrast
+        data.analysis.contrast
       );
 
       setSharpness(
-        data.sharpness
+        data.analysis.sharpness
       );
+
+      setEdgeDensity(
+        data.analysis.edge_density
+      );
+
+      setWhitespace(
+        data.analysis.whitespace
+      );
+
+      /* -----------------------
+        Result
+      ----------------------- */
 
       setScore(
-        data.score
+        data.result.score
       );
 
-      setQuality(
-        data.quality
+      /* -----------------------
+        Colors
+      ----------------------- */
+
+      setDominantColors(
+        data.colors.dominant_colors
       );
+
+      setColorHarmony(
+        data.colors.harmony
+      );
+
+      /* -----------------------
+        Metrics
+      ----------------------- */
+
+      setMetrics(
+        data.metrics
+      );
+
+      /* -----------------------
+        Feedback
+      ----------------------- */
 
       setFeedback(
         data.feedback
       );
 
     } catch (error) {
+
       console.error(error);
 
-      alert(
-        "Failed to analyze image."
+      setError(
+        "Unable to analyze image. Please make sure the backend is running."
       );
+
     } finally {
+
       setLoading(false);
+
     }
+
   };
 
-  return (
-    <main className="min-h-screen bg-black text-white p-10">
-      <h1 className="text-5xl font-bold text-center mb-10">
-        Upload Design
-      </h1>
 
-      <div className="max-w-3xl mx-auto border border-gray-700 rounded-xl p-10">
+    return (
+      <AuthGuard>
+      <main className="min-h-screen bg-black text-white">
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="mb-8"
-        />
+        <Navbar />
 
-        {fileName && (
-          <div className="mb-5">
-            <p>
-              <strong>File:</strong>{" "}
-              {fileName}
-            </p>
+        <UploadHeader title="Upload Design" subtitle="Upload posters, logos, banners, social media posts and other creatives. DesignDNA will analyze your image and generate AI-powered design insights."/>
 
-            <p>
-              <strong>Size:</strong>{" "}
-              {fileSize}
-            </p>
+        {/* =========================
+            PAGE
+        ========================== */}
+
+        <section className="max-w-screen-2xl mx-auto px-8 py-10">
+
+
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500 bg-red-500/10 p-4 text-red-300">
+            {error}
           </div>
         )}
 
-        {image && (
-          <>
-            <img
-              src={image}
-              alt="Preview"
-              className="rounded-xl max-h-[500px] mx-auto mb-6"
+          {/* ======================
+              Upload Card
+          ======================= */}
+
+          <div className="bg-neutral-900 border border-gray-800 rounded-2xl p-8">
+
+            <label
+              htmlFor="upload-file"
+              className="
+                cursor-pointer
+                inline-block
+                px-6
+                py-3
+                bg-blue-600
+                hover:bg-blue-700
+                rounded-xl
+                font-semibold
+                transition
+              "
+            >
+              Choose Design
+            </label>
+
+            <input
+              id="upload-file"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
             />
 
-            <button
-              onClick={analyzeDesign}
-              disabled={loading}
-              className="bg-white text-black px-6 py-3 rounded-xl font-semibold block mx-auto hover:bg-gray-200 transition"
-            >
-              {loading
-                ? "Analyzing..."
-                : "Analyze Design"}
-            </button>
+            {/* File Information */}
 
-            {brightness !== null && (
-              <div className="mt-8 text-center space-y-3">
-
+            {fileName && (
+    
+              <div className="mb-8 space-y-2">
+    
                 <p>
-                  <strong>
-                    Brightness:
-                  </strong>{" "}
-                  {brightness.toFixed(
-                    2
-                  )}
-                </p>
 
+                  <strong>File:</strong>{" "}
+                  {fileName}
+    
+                </p>
+    
                 <p>
-                  <strong>
-                    Contrast:
-                  </strong>{" "}
-                  {contrast?.toFixed(
-                    2
-                  )}
+
+                  <strong>Size:</strong>{" "}
+                  {fileSize}
+
                 </p>
 
-                <p>
-                  <strong>
-                    Sharpness:
-                  </strong>{" "}
-                  {sharpness?.toFixed(
-                    2
-                  )}
+              </div>
+    
+            )}
+
+            {/* Preview */}
+
+            {image && (
+
+              <div className="mb-8">
+                <Image
+                    src={image}
+                    alt="Preview"
+                    width={500}
+                    height={500}
+                />
+              </div>
+
+            )}
+
+            {/* Analyze Button */}
+
+            {image && (
+
+              <button
+
+                onClick={analyzeDesign}
+
+                disabled={loading}
+
+                className="
+                  bg-white
+                  text-black
+                  px-8
+                  py-4
+                  rounded-xl
+                  font-semibold
+                  hover:bg-gray-300
+                  transition
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
+                "
+
+              >
+
+                {loading
+                  ? "Analyzing Design..."
+                  : "Analyze Design"}
+
+              </button>
+
+            )}
+
+            {/* Loading */}
+
+            {loading && (
+
+              <div className="mt-8">
+
+                <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+
+                  <div className="
+                    h-full
+                    w-1/2
+                    bg-green-400
+                    animate-pulse
+                  " />
+
+                </div>
+
+                <p className="mt-4 text-gray-400">
+
+                  AI is analyzing your design...
+
                 </p>
 
-                <p className="text-2xl font-bold text-green-400">
-                  Design Score: {score}/100
-                </p>
+              </div>
 
-                <p className="text-lg text-blue-400 font-semibold">
-                  Quality: {quality}
-                </p>
+            )}
 
-                <div className="mt-6 border border-gray-700 rounded-xl p-4 text-left">
-                  <h3 className="font-bold mb-3">
-                    AI Feedback
-                  </h3>
+            {/* =====================================
+                DASHBOARD
+            ===================================== */}
 
-                  <ul className="list-disc pl-5 space-y-2">
-                    {feedback.map(
-                      (
-                        item,
-                        index
-                      ) => (
-                        <li
-                          key={
-                            index
-                          }
-                        >
-                          {item}
-                        </li>
-                      )
-                    )}
-                  </ul>
+            {score !== null && (
+
+            <div className="mt-12 space-y-12">
+
+            <ScoreCard score={score}/>
+
+            <ColorPalette colors={dominantColors} harmony={colorHarmony} />
+
+            <FeedbackCard feedback={feedback} />
+
+              {/* ============================
+                  Metrics
+              ============================ */}
+
+              <div className="grid
+                grid-cols-1
+                md:grid-cols-2
+                xl:grid-cols-3
+                gap-6"
+              >
+
+                {/* Brightness */}
+
+                <MetricCard
+                  title="Brightness"
+                  value={brightness}
+                  unit=""
+                  status={metrics?.brightness}
+                />
+
+                {/* Contrast */}
+
+                <MetricCard
+                  title="Contrast"
+                  value={contrast}
+                  unit=""
+                  status={metrics?.contrast}
+                />
+
+                {/* Sharpness */}
+
+                <MetricCard
+                  title="Sharpness"
+                  value={sharpness}
+                  unit=""
+                  status={metrics?.sharpness}
+                />
+
+                {/* Edge Density */}
+
+                <MetricCard
+                  title="Edge Density"
+                  value={edgeDensity}
+                  unit="%"
+                  status={metrics?.edges}
+                />
+
+                {/* Whitespace */}
+
+                <MetricCard
+                  title="Whitespace"
+                  value={whitespace}
+                  unit="%"
+                  status={metrics?.whitespace}
+                />
+
+              </div>
+
+              {/* ============================
+                  Image Information
+              ============================ */}
+
+              <div className="bg-neutral-950 border border-gray-800 rounded-2xl p-6">
+
+                <h2 className="text-2xl font-bold mb-6">
+
+                  Image Information
+
+                </h2>
+
+                <div className="grid md:grid-cols-3 gap-4">
+
+                  <InfoCard
+                    title="Width"
+                    value={width}
+                  />
+
+                  <InfoCard
+                    title="Height"
+                    value={height}
+                  />
+
+                  <InfoCard
+                    title="Pixels"
+                    value={pixels}
+                  />
+
                 </div>
 
               </div>
+
+            </div>
+
             )}
-          </>
-        )}
-      </div>
-    </main>
-  );
+
+          </div>
+
+        </section>
+
+      </main>
+      </AuthGuard>
+    );
 }

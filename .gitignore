@@ -43,9 +43,22 @@ next-env.d.ts
 # Python
 backend/venv/
 backend/__pycache__/
+venv/
+__pycache__/
+*.pyc
 
 # Next.js
 .next/
 
 # Node
 node_modules/
+
+# Database
+backend/designdna.db
+
+# Environment
+.env
+.env.local
+
+# VSCode
+.vscode/
