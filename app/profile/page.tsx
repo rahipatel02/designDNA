@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getDashboard } from "../services/dashboard";
 import { DashboardResponse } from "../types/dashboard";
+import { getHistory, HistoryItem } from "../services/history";
+import { getLogoHistory, LogoResponse } from "../services/logo";
 
 export default function ProfilePage() {
     const {
@@ -20,6 +22,8 @@ export default function ProfilePage() {
         useState<DashboardResponse | null>(null);
 
     const [loading, setLoading] = useState(true);
+    const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [logos, setLogos] = useState<LogoResponse[]>([]);
 
     useEffect(() => {
 
@@ -30,6 +34,14 @@ export default function ProfilePage() {
                 const data = await getDashboard();
 
                 setDashboard(data);
+
+                const historyData = await getHistory();
+
+                setHistory(historyData);
+
+                const logoData = await getLogoHistory();
+
+                setLogos(logoData);
 
             } catch (error) {
 
@@ -89,14 +101,14 @@ export default function ProfilePage() {
 
                             </div>
 
-                            <div className="rounded-xl border border-gray-700 bg-neutral-900 p-6">
+                            <div className="rounded-xl border border-gray-700 bg-neutral-900 p-6 hover:border-blue-500 transition">
 
                                 <p className="text-gray-400">
                                     AI Logos
                                 </p>
 
                                 <h2 className="text-4xl font-bold mt-2">
-                                    0
+                                    {loading ? "--" : logos.length}
                                 </h2>
 
                             </div>
@@ -133,9 +145,17 @@ export default function ProfilePage() {
                                 </button>
 
                                 <button
+                                    onClick={() => router.push("/generate-logo")}
                                     className="px-6 py-3 rounded-xl border border-gray-700 hover:bg-neutral-900 transition"
                                 >
                                     Generate Logo
+                                </button>
+
+                                <button
+                                    onClick={() => router.push("/logo-history")}
+                                    className="px-6 py-3 rounded-xl border border-gray-700 hover:bg-neutral-900 transition"
+                                >
+                                    Logo History
                                 </button>
 
                             </div>
@@ -150,11 +170,54 @@ export default function ProfilePage() {
                                 Recent Analyses
                             </h2>
 
+                        {history.length === 0 ? (
+
                             <div className="rounded-xl border border-dashed border-gray-700 p-12 text-center text-gray-500">
 
                                 No analyses yet.
 
                             </div>
+
+                        ) : (
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+                                {history.slice(0, 6).map((item) => (
+
+                                    <div
+                                        key={item.id}
+                                        onClick={() => router.push(`/history/${item.id}`)}
+                                        className="bg-neutral-900 rounded-xl overflow-hidden border border-gray-800 hover:border-blue-500 transition-all duration-300 cursor-pointer"
+                                    >
+                                        <img
+                                            src={`http://127.0.0.1:8000${item.image_path}`}
+                                            alt={item.image_name}
+                                            className="w-full h-52 object-cover"
+                                        />
+
+                                        <div className="p-4">
+
+                                            <h3 className="font-semibold truncate">
+
+                                                {item.image_name}
+
+                                            </h3>
+
+                                            <p className="text-blue-400 mt-2">
+
+                                                Score: {item.score}
+
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                ))}
+
+                            </div>
+
+                        )}
 
                         </div>
 
@@ -169,6 +232,67 @@ export default function ProfilePage() {
                         >
                             Logout
                         </button>
+
+                        {/* Recent AI Logos */}
+
+                        <div>
+
+                            <h2 className="text-2xl font-semibold mb-6">
+
+                                Recent AI Logos
+
+                            </h2>
+
+                            {logos.length === 0 ? (
+
+                                <div className="rounded-xl border border-dashed border-gray-700 p-12 text-center text-gray-500">
+
+                                    No logos generated yet.
+
+                                </div>
+
+                            ) : (
+
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+                                    {logos.slice(0, 4).map((logo) => (
+
+                                        <div
+                                            key={logo.id}
+                                            className="bg-neutral-900 rounded-xl overflow-hidden border border-gray-800 hover:border-blue-500 transition duration-300"
+                                        >
+
+                                            <img
+                                                src={`http://127.0.0.1:8000${logo.image_path}`}
+                                                alt={logo.prompt}
+                                                className="w-full h-48 object-cover"
+                                            />
+
+                                            <div className="p-4">
+
+                                                <h3 className="font-semibold truncate">
+
+                                                    {logo.prompt}
+
+                                                </h3>
+
+                                                <p className="text-blue-400 mt-2">
+
+                                                    {logo.style}
+
+                                                </p>
+
+                                            </div>
+
+                                        </div>
+
+                                    ))}
+
+                                </div>
+
+                            )}
+
+                        </div>
 
                     </div>
 

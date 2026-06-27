@@ -9,13 +9,17 @@ def save_analysis(
     db: Session,
     user_id: int,
     image_name: str,
+    image_path: str,
     result: dict,
 ):
+
     analysis = Analysis(
 
         user_id=user_id,
 
         image_name=image_name,
+
+        image_path=image_path,
 
         score=result["result"]["score"],
 

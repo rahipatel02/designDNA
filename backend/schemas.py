@@ -95,3 +95,33 @@ class Token(BaseModel):
 class TokenData(BaseModel):
 
     email: str | None = None
+
+# =====================================================
+# LOGO REQUEST
+# =====================================================
+
+class LogoGenerateRequest(BaseModel):
+
+    prompt: str
+
+    style: str = "Modern"
+
+
+# =====================================================
+# LOGO RESPONSE
+# =====================================================
+
+class LogoResponse(BaseModel):
+
+    id: int
+
+    prompt: str
+
+    style: str
+
+    image_path: str
+
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

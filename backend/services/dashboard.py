@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from models import Analysis
+from models import LogoGeneration
 
 
 def get_dashboard_stats(
@@ -14,17 +14,25 @@ def get_dashboard_stats(
         .all()
     )
 
-    total = len(analyses)
+    logos = (
+        db.query(LogoGeneration)
+        .filter(LogoGeneration.user_id == user_id)
+        .all()
+    )
 
-    if total == 0:
+    total_designs = len(analyses)
+    total_logos = len(logos)
+
+    if total_designs == 0:
         average = 0
     else:
         average = round(
-            sum(a.score for a in analyses) / total,
+            sum(a.score for a in analyses) / total_designs,
             1,
         )
 
     return {
-        "designs_analyzed": total,
+        "designs_analyzed": total_designs,
+        "ai_logos": total_logos,
         "average_score": average,
     }

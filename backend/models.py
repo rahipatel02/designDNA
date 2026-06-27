@@ -61,7 +61,13 @@ class User(Base):
     analyses = relationship(
         "Analysis",
         back_populates="user",
-        cascade="all, delete"
+        cascade="all, delete-orphan",
+    )
+
+    logos = relationship(
+        "LogoGeneration",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
 
 
@@ -85,7 +91,14 @@ class Analysis(Base):
         nullable=False
     )
 
+    # Original uploaded filename
     image_name = Column(
+        String,
+        nullable=False
+    )
+
+    # Relative path of stored image
+    image_path = Column(
         String,
         nullable=False
     )
@@ -95,25 +108,15 @@ class Analysis(Base):
         nullable=False
     )
 
-    brightness = Column(
-        Float
-    )
+    brightness = Column(Float)
 
-    contrast = Column(
-        Float
-    )
+    contrast = Column(Float)
 
-    sharpness = Column(
-        Float
-    )
+    sharpness = Column(Float)
 
-    edge_density = Column(
-        Float
-    )
+    edge_density = Column(Float)
 
-    whitespace = Column(
-        Float
-    )
+    whitespace = Column(Float)
 
     dominant_colors = Column(
         String,
@@ -132,11 +135,59 @@ class Analysis(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow
+        default=datetime.utcnow,
+        nullable=False
     )
 
-    # Many Analyses -> One User
     user = relationship(
         "User",
         back_populates="analyses"
+    )
+
+
+# =====================================================
+# LOGO GENERATION MODEL
+# =====================================================
+
+class LogoGeneration(Base):
+
+    __tablename__ = "logo_generations"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+
+    prompt = Column(
+        String,
+        nullable=False,
+    )
+
+    style = Column(
+        String,
+        nullable=False,
+        default="Modern",
+    )
+
+    image_path = Column(
+        String,
+        nullable=False,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+
+    user = relationship(
+        "User",
+        back_populates="logos",
     )
